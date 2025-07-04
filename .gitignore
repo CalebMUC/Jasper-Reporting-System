@@ -1,0 +1,20 @@
+# Java
+target/
+*.jar
+
+# .NET
+bin/
+obj/
+
+# React
+node_modules/
+build/
+
+# System
+.DS_Store
+*.log
+*.env
+
+# IDEs
+.vscode/
+.idea/
