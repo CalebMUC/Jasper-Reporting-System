@@ -1,0 +1,6 @@
+@JasperReporting_HostAddress = http://localhost:5244
+
+GET {{JasperReporting_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
