@@ -8,8 +8,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.example.demo.Dtos.StockReportRequest;
+
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.*;
 
@@ -17,6 +21,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.media.Content;
 
 import net.sf.jasperreports.engine.*;
@@ -34,23 +39,21 @@ public class ReportsController {
             content = @Content(mediaType = "application/pdf")),
         @ApiResponse(responseCode = "500", description = "Server error")
     })
-    @GetMapping("/StockReports")
-    public ResponseEntity<byte[]> generateStockReport(
-        @Parameter(description = "Minimum stock level to include in the report", example = "10")
-        @RequestParam BigDecimal LowStockThreshold
-    ) {
-        try {
+   @PostMapping("/StockReports")
+public ResponseEntity<byte[]> generateStockReport(@org.springframework.web.bind.annotation.RequestBody StockReportRequest request)
+ {
+        try { 
             // Load the JRXML report
             InputStream jrxmlInput = getClass().getResourceAsStream("/templates/StockAlerts.jrxml");
             if (jrxmlInput == null) {
                 throw new RuntimeException("Could not find StockAlerts.jrxml in /templates.");
             }
-
+ 
             JasperReport jasperReport = JasperCompileManager.compileReport(jrxmlInput);
 
             // Parameters
             Map<String, Object> parameters = new HashMap<>();
-            parameters.put("LowStockThreshold", LowStockThreshold);
+            parameters.put("LowStockThreshold", request.getLowStockThreshold());
 
             // PostgreSQL Connection
             String dbUrl = System.getenv("DB_URL");
