@@ -3,15 +3,22 @@ package com.example.demo.Dtos;
 import java.math.BigDecimal;
 
 public class StockReportRequest {
-    private BigDecimal LowStockThreshold;
+    private BigDecimal lowStockThreshold;
+    private String format;
 
-    //Getter
-    public BigDecimal getLowStockThreshold(){
-        return LowStockThreshold;
-    }
-    //setter
-    public void setLowStockThreshold(BigDecimal LowStockThreshold){
-        this.LowStockThreshold = LowStockThreshold;
+    public BigDecimal getLowStockThreshold() {
+        return lowStockThreshold;
     }
 
+    public void setLowStockThreshold(BigDecimal lowStockThreshold) {
+        this.lowStockThreshold = lowStockThreshold;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
 }

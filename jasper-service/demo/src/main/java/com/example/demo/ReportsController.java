@@ -1,5 +1,7 @@
 package com.example.demo;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -25,6 +27,10 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.media.Content;
 
 import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
+import net.sf.jasperreports.export.OutputStreamExporterOutput;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
 
 @RestController
 @RequestMapping("api/reports")
@@ -39,47 +45,60 @@ public class ReportsController {
             content = @Content(mediaType = "application/pdf")),
         @ApiResponse(responseCode = "500", description = "Server error")
     })
-   @PostMapping("/StockReports")
-public ResponseEntity<byte[]> generateStockReport(@org.springframework.web.bind.annotation.RequestBody StockReportRequest request)
- {
-        try { 
-            // Load the JRXML report
+    @PostMapping("/StockReports")
+    public ResponseEntity<byte[]> generateStockReport(@org.springframework.web.bind.annotation.RequestBody StockReportRequest request) {
+        try {
             InputStream jrxmlInput = getClass().getResourceAsStream("/templates/StockAlerts.jrxml");
-            if (jrxmlInput == null) {
-                throw new RuntimeException("Could not find StockAlerts.jrxml in /templates.");
-            }
- 
+            if (jrxmlInput == null) throw new RuntimeException("Could not find StockAlerts.jrxml");
+
             JasperReport jasperReport = JasperCompileManager.compileReport(jrxmlInput);
 
-            // Parameters
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("LowStockThreshold", request.getLowStockThreshold());
 
-            // PostgreSQL Connection
             String dbUrl = System.getenv("DB_URL");
             String dbUser = System.getenv("DB_USER");
             String dbPass = System.getenv("DB_PASS");
 
-            if (dbUrl == null || dbUser == null || dbPass == null) {
-                throw new RuntimeException("Database environment variables are not set properly.");
-            }
+            if (dbUrl == null || dbUser == null || dbPass == null)
+                throw new RuntimeException("Database environment variables not set");
 
             try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
                 JasperPrint print = JasperFillManager.fillReport(jasperReport, parameters, conn);
-                byte[] pdf = JasperExportManager.exportReportToPdf(print);
 
+                String format = (request.getFormat() == null) ? "pdf" : request.getFormat().toLowerCase();
                 HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename("stock_report.pdf").build());
+                byte[] fileBytes;
+                String filename;
 
-                return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+                switch (format) {
+                    case "xlsx":
+                        ByteArrayOutputStream xlsxOut = new ByteArrayOutputStream();
+                        JRXlsxExporter xlsxExporter = new JRXlsxExporter();
+                        xlsxExporter.setExporterInput(new SimpleExporterInput(print)); // Correct
+                        xlsxExporter.setExporterOutput(new SimpleOutputStreamExporterOutput(xlsxOut));
+                        xlsxExporter.exportReport();
+                        fileBytes = xlsxOut.toByteArray();
+                        headers.setContentType(MediaType.parseMediaType(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                        filename = "stock_report.xlsx";
+                        break;
+                    case "pdf":
+                    default:
+                        fileBytes = JasperExportManager.exportReportToPdf(print);
+                        headers.setContentType(MediaType.APPLICATION_PDF);
+                        filename = "stock_report.pdf";
+                        break;
+                }
+
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(("Error generating report: " + e.getMessage()).getBytes());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(("Error generating report: " + e.getMessage()).getBytes());
         }
     }
 }
