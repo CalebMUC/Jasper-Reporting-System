@@ -24,14 +24,14 @@
             "ProductName", 
             "Quantity", 
             "ReOrderLevel",
-            "Supplier",
+            "SupplierId" AS "Supplier",
             "CategoryID"
         FROM 
             "Products"
         WHERE 
             "Quantity" <= $P{LowStockThreshold}
         ORDER BY 
-            "Supplier", "CategoryID", "Quantity" ASC
+            "SupplierId", "CategoryID", "Quantity" ASC
         ]]>
     </queryString>
 
