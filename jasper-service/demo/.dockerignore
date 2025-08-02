@@ -1,5 +1,3 @@
-target/
-*.jar
 *.iml
 .idea/
 .git/
